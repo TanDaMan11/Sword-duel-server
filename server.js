@@ -53,35 +53,57 @@ io.on("connection", (socket) => {
   });
 
   socket.on("game_state", (data) => {
-    const code = data.room;
-    if (rooms[code]) {
+    const code = Object.keys(rooms).find(key => 
+      rooms[key].players.includes(socket.id)
+    );
+    
+    if (code) {
       socket.to(code).emit("game_state", {
-        playerId: data.playerId,
         x: data.x,
         y: data.y,
         vx: data.vx,
         vy: data.vy,
-        health: data.health,
+        facingRight: data.facingRight,
         attacking: data.attacking,
-        facingRight: data.facingRight
+        attackDuration: data.attackDuration,
+        health: data.health,
+        canCrit: data.canCrit,
+        critGlow: data.critGlow,
+        grounded: data.grounded
+      });
+    }
+  });
+
+  socket.on("attack_hit", (data) => {
+    const code = Object.keys(rooms).find(key => 
+      rooms[key].players.includes(socket.id)
+    );
+    
+    if (code) {
+      socket.to(code).emit("attack_hit", {
+        damage: data.damage,
+        isCrit: data.isCrit,
+        defenderHealth: data.defenderHealth
       });
     }
   });
 
   socket.on("game_over", (data) => {
-    const code = data.room;
-    if (rooms[code]) {
+    const code = Object.keys(rooms).find(key => 
+      rooms[key].players.includes(socket.id)
+    );
+    
+    if (code) {
       console.log(`Game over in room ${code}. Winner: ${data.winner}`);
-      rooms[code].gameOver = true;
       io.to(code).emit("game_over", { winner: data.winner });
     }
   });
 
-  socket.on("rematch_ready", (data) => {
+  socket.on("next_round", (data) => {
     const code = data.room;
     if (rooms[code]) {
-      console.log(`Player ${socket.id} is ready for rematch in room ${code}`);
-      socket.to(code).emit("rematch_ready");
+      console.log(`Next round starting in room ${code}`);
+      io.to(code).emit("next_round");
     }
   });
 
