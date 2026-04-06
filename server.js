@@ -20,32 +20,29 @@ function generateCode() {
 io.on("connection", (socket) => {
   console.log("Player connected");
 
-  socket.on("createRoom", () => {
-    const code = generateCode();
-
+  socket.on("create_room", (data) => {
+    const code = data.code;
     rooms[code] = {
       players: [socket.id]
     };
-
     socket.join(code);
-
-    socket.emit("roomCreated", code);
+    socket.emit("room_created", { code });
   });
 
-  socket.on("joinRoom", (code) => {
+  socket.on("join_room", (data) => {
+    const code = data.code;
     if (rooms[code] && rooms[code].players.length < 2) {
       rooms[code].players.push(socket.id);
-
       socket.join(code);
-
-      io.to(code).emit("startGame");
+      socket.emit("room_joined", { code });
+      socket.to(code).emit("player_joined");
     } else {
-      socket.emit("errorMessage", "Room full or not found");
+      socket.emit("error", { message: "Room full or not found" });
     }
   });
 
-  socket.on("playerMove", (data) => {
-    socket.to(data.room).emit("playerMove", data);
+  socket.on("game_state", (data) => {
+    socket.to(data.room).emit("game_state", data);
   });
 
   socket.on("disconnect", () => {
