@@ -99,11 +99,20 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("next_round", (data) => {
+  socket.on("rematch_ready", (data) => {
     const code = data.room;
     if (rooms[code]) {
-      console.log(`Next round starting in room ${code}`);
-      io.to(code).emit("next_round");
+      console.log(`Player ${socket.id} is ready for rematch in room ${code}`);
+      socket.to(code).emit("rematch_ready");
+    }
+  });
+
+  socket.on("return_lobby", (data) => {
+    const code = data.room;
+    if (rooms[code]) {
+      console.log(`Players returning to lobby from room ${code}`);
+      io.to(code).emit("return_lobby");
+      delete rooms[code];
     }
   });
 
@@ -111,12 +120,9 @@ io.on("connection", (socket) => {
     console.log("Player disconnected:", socket.id);
     for (const code in rooms) {
       if (rooms[code].players.includes(socket.id)) {
-        rooms[code].players = rooms[code].players.filter(id => id !== socket.id);
         io.to(code).emit("player_left");
-        if (rooms[code].players.length === 0) {
-          delete rooms[code];
-          console.log(`Room ${code} deleted`);
-        }
+        delete rooms[code];
+        console.log(`Room ${code} deleted`);
         break;
       }
     }
